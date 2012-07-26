@@ -42,33 +42,52 @@
 			function make(h) {
 				return b().paint(function(ctx) {
 					ctx.beginPath();
-					ctx.arc(20, 20, 10, 0, 2*Math.PI, false);
+					ctx.arc(0, 0, 1, 0, 2*Math.PI, false);
 					ctx.fillStyle = hsvToHex(h, 1, .7);
         			ctx.fill();
 					ctx.closePath();
 					ctx.beginPath();
-					ctx.arc(19, 19, 7.5, 0, 2*Math.PI, false);
+					ctx.arc(-.1, -.1, .75, 0, 2*Math.PI, false);
 					ctx.fillStyle = hsvToHex(h, 1, .8);
         			ctx.fill();
 					ctx.closePath();
 					ctx.beginPath();
-					ctx.arc(18, 18, 5, 0, 2*Math.PI, false);
+					ctx.arc(-.2, -.2, .5, 0, 2*Math.PI, false);
 					ctx.fillStyle = hsvToHex(h, 1, .9);
         			ctx.fill();
 					ctx.closePath();
 					ctx.beginPath();
-					ctx.arc(17, 17, 2.5, 0, 2*Math.PI, false);
+					ctx.arc(-.3, -.3, .25, 0, 2*Math.PI, false);
 					ctx.fillStyle = hsvToHex(h, 1, 1);
         			ctx.fill();
 					ctx.closePath();
 				});
 			}
 			
+			
             function start() {
-				//console.log(hsvToHex(119/360, 1, 1));
+				var testModifier = function(t) {
+					this.x = 20;
+					this.y = 20;
+					this.sx = b(this.$).data().r;
+					this.sy = b(this.$).data().r;
+					this.alpha = Math.cos(t)/2 + .5;
+				}
 				
-				var dot = make(119/360);
+				var dot = make(119/360).data({'r': 20, 'vx': 0, 'vy': 0}).modify(testModifier);
 				scene1.add(dot);
+				
+				scene1.on(C.X_MCLICK, function(evt) {
+					// find masses
+					var e = .1;
+					var m = 4*Math.pow(dot.data().r, 3)/3;
+					var m1 = (1-e) * m;
+					var m2 = e*m;
+					var r1 = Math.pow(3*m1/4, 1/3);
+					var r2 = Math.pow(3*m2/4, 1/3);
+					
+					// TODO: find new velocities
+				});
 				
                 createPlayer('canvas1', {'mode': C.M_DYNAMIC}).load(scene1).play();
     
