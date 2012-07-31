@@ -14,6 +14,8 @@
 			// canvas1
             var scene1 = b();
 			
+			var dot = new Array(1);
+			
 			function toHex(n) {
 				return ((n < 16) ? '0' : '') + n.toString(16);
 			}
@@ -39,7 +41,12 @@
 				return '#' + toHex(Math.floor(r*255)) + toHex(Math.floor(g*255)) + toHex(Math.floor(b*255));
 			}
 			
-			function make(h) {
+			function make(i) {
+				var h;
+				if (dot[i])
+					h = Math.max(dot[i].data().r/dot[0].data().r, 1);
+				else
+					h = 1;
 				return b().paint(function(ctx) {
 					ctx.beginPath();
 					ctx.arc(0, 0, 1, 0, 2*Math.PI, false);
@@ -74,19 +81,21 @@
 					this.alpha = Math.cos(t)/2 + .5;
 				}
 				
-				var dot = make(119/360).data({'r': 20, 'vx': 0, 'vy': 0}).modify(testModifier);
-				scene1.add(dot);
+				// 119/360
+				dot[0] = make(0).data({'r': 20, 'vx': 0, 'vy': 0}).modify(testModifier);
+				scene1.add(dot[0]);
 				
 				scene1.on(C.X_MCLICK, function(evt) {
 					// find masses
+					
 					var e = .1;
-					var m = 4*Math.pow(dot.data().r, 3)/3;
+					var m = 4*Math.pow(dot[0].data().r, 3)/3;
 					var m1 = (1-e) * m;
 					var m2 = e*m;
 					var r1 = Math.pow(3*m1/4, 1/3);
 					var r2 = Math.pow(3*m2/4, 1/3);
-					var vx = dot.data().vx;
-					var vy = dot.data().vy;
+					var vx = dot[0].data().vx;
+					var vy = dot[0].data().vy;
 					
 					// find new velocities
 					// m1*vx1 + m2*vx2 = m*vx
@@ -101,17 +110,23 @@
 					// m1*vx1^2/2 + m2*(m1^2 + m1)*vx1^2/(2*(m2^2 - m2)) = m*vx^2/2
 					// vx1^2*(m1 + m2*(m1^2 + m1)/(m2^2 - m2)) = m*vx^2
 					
-					var vx1 = Math.sqrt(m*vx*vx/(m1 + m2*(m1*m1 + m1)/(m2*m2 - m2)));
+					var vx1 = (evt.pos[0] < dot[0].data().x ? 1 : -1)*Math.sqrt(m*vx*vx/(m1 + m2*(m1*m1 + m1)/(m2*m2 - m2)));
 					var vx2 = -m1*vx1/m2;
 					vx1 += vx;
 					vx2 += vx;
-					var vy1 = Math.sqrt(m*vy*vy/(m1 + m2*(m1*m1 + m1)/(m2*m2 - m2)));
+					var vy1 = (evt.pos[1] < dot[0].data().y ? 1 : -1)*Math.sqrt(m*vy*vy/(m1 + m2*(m1*m1 + m1)/(m2*m2 - m2)));
 					var vy2 = -m1*vy1/m2;
 					vy1 += vy;
 					vy2 += vy;
 					
-					// TODO: form new objects with resultant mass and velocity
+					// modify object
+					dot[0].data({'r': r1, 'vx': vx1, 'vy': vy1});
+					dot.push(make(dot.length).data({'r': r2, 'vx': vx2, 'vy': vy2}));
+					dot[dot.length-1].v.state.x = dot[0].x;
+					dot[dot.length-1].v.state.y = dot[0].y;
+					scene1.add(dot[dot.length-1]);
 					
+					// TODO: apply vx and vy
 				});
 				
                 createPlayer('canvas1', {'mode': C.M_DYNAMIC}).load(scene1).play();
