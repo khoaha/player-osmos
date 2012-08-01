@@ -41,6 +41,19 @@
 				return '#' + toHex(Math.floor(r*255)) + toHex(Math.floor(g*255)) + toHex(Math.floor(b*255));
 			}
 			
+			var testModifier = function(t) {
+				var vx = b(this.$).data().vx;
+				var vy = b(this.$).data().vy;
+				this.x = b(this.$).data().x + vx;
+				this.y = b(this.$).data().y + vy;
+				this.sx = b(this.$).data().r;
+				this.sy = b(this.$).data().r;
+				
+				this.alpha = Math.cos(t)/2 + .5;
+				
+				b(this.$).data({'r': this.sx, 'x':this.x, 'y':this.y, 'vx': vx, 'vy': vy});
+			}
+			
 			function make(i) {
 				var h;
 				if (dot[i])
@@ -68,26 +81,17 @@
 					ctx.fillStyle = hsvToHex(h, 1, 1);
         			ctx.fill();
 					ctx.closePath();
-				});
+				}).modify(testModifier);
 			}
 			
 			
-            function start() {
-				var testModifier = function(t) {
-					this.x = 20;
-					this.y = 20;
-					this.sx = b(this.$).data().r;
-					this.sy = b(this.$).data().r;
-					this.alpha = Math.cos(t)/2 + .5;
-				}
-				
+            function start() {		
 				// 119/360
-				dot[0] = make(0).data({'r': 20, 'vx': 0, 'vy': 0}).modify(testModifier);
+				dot[0] = make(0).data({'r': 20, 'x':20, 'y':20, 'vx': 0, 'vy': 0});
 				scene1.add(dot[0]);
 				
 				scene1.on(C.X_MCLICK, function(evt) {
 					// find masses
-					
 					var e = .1;
 					var m = 4*Math.pow(dot[0].data().r, 3)/3;
 					var m1 = (1-e) * m;
@@ -97,34 +101,27 @@
 					var vx = dot[0].data().vx;
 					var vy = dot[0].data().vy;
 					
+					// determine angle
+					var s = 1;
+					var x = dot[0].data().x;
+					var y = dot[0].data().y;
+					var a = Math.atan2(evt.pos[1] - y, evt.pos[0] - x);
+					var vx2 = s*Math.cos(a) + vx;
+					var vy2 = s*Math.sin(a) + vy;
+					
 					// find new velocities
 					// m1*vx1 + m2*vx2 = m*vx
-					// m1*vx1^2/2 + m2*vx2^2/2 = m*vx^2/2	
 					
-					// m1^2*vx1^2 = m2^2*vx2^2
-					// m1*vx1^2 = -m2*vx2^2
-					
-					// (m1^2 + m1)*vx1^2 = (m2^2 - m2)*vx2^2
-					// (m2^2 + m2)*vx2^2 = (m1^2 - m1)*vx1^2
-					
-					// m1*vx1^2/2 + m2*(m1^2 + m1)*vx1^2/(2*(m2^2 - m2)) = m*vx^2/2
-					// vx1^2*(m1 + m2*(m1^2 + m1)/(m2^2 - m2)) = m*vx^2
-					
-					var vx1 = (evt.pos[0] < dot[0].data().x ? 1 : -1)*Math.sqrt(m*vx*vx/(m1 + m2*(m1*m1 + m1)/(m2*m2 - m2)));
-					var vx2 = -m1*vx1/m2;
-					vx1 += vx;
-					vx2 += vx;
-					var vy1 = (evt.pos[1] < dot[0].data().y ? 1 : -1)*Math.sqrt(m*vy*vy/(m1 + m2*(m1*m1 + m1)/(m2*m2 - m2)));
-					var vy2 = -m1*vy1/m2;
-					vy1 += vy;
-					vy2 += vy;
+					var vx1 = (m*vx - m2*vx2)/m1;
+					var vy1 = (m*vy - m2*vy2)/m1;
 					
 					// modify object
-					dot[0].data({'r': r1, 'vx': vx1, 'vy': vy1});
-					dot.push(make(dot.length).data({'r': r2, 'vx': vx2, 'vy': vy2}));
-					dot[dot.length-1].v.state.x = dot[0].x;
-					dot[dot.length-1].v.state.y = dot[0].y;
-					scene1.add(dot[dot.length-1]);
+					dot[0].data({'r': r1, 'x':x, 'y':y, 'vx': vx1, 'vy': vy1});
+					var l = dot.length;
+					dot.push(make(l).data({'r': r2, 'x':x, 'y':y, 'vx': vx2, 'vy': vy2}));
+					scene1.add(dot[l]);
+					
+					console.log(dot[l].data());
 					
 					// TODO: apply vx and vy
 				});
