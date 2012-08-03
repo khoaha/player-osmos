@@ -56,13 +56,13 @@
 				b(this.$).data({'r': this.sx, 'x':this.x, 'y':this.y, 'vx': vx, 'vy': vy});
 			}
 			
-			var dotModifier = function(t) {
-				var vx = b(this.$).data().vx;
-				var vy = b(this.$).data().vy;
-				this.x = b(this.$).data().x + vx;
-				this.y = b(this.$).data().y + vy;
-				this.sx = b(this.$).data().r;
-				this.sy = b(this.$).data().r;
+			var dotModifier = function(t, i) {
+				var vx = dot[i].data().vx;
+				var vy = dot[i].data().vy;
+				this.x = dot[i].data().x + vx;
+				this.y = dot[i].data().y + vy;
+				this.sx = dot[i].data().r;
+				this.sy = dot[i].data().r;
 				
 				// reflect
 				if (this.x < this.sx) {
@@ -82,7 +82,31 @@
 				
 				//this.alpha = Math.cos(t)/2 + .5;
 				
-				b(this.$).data({'r': this.sx, 'x':this.x, 'y':this.y, 'vx': vx, 'vy': vy});
+				// check for collision
+				for (var j=i+1; j<dot.length; j++) {
+					var xdif = dot[j].data().x - this.x;
+					var ydif = dot[j].data().y - this.y;
+					var dif = this.sx + dot[j].data().r - Math.sqrt(xdif*xdif+ydif*ydif);
+					if (dif < 0) {
+						var d = dot[j].data();
+						var ang = Math.atan2(ydif, xdif);
+						if (this.sx < d.r) {
+							this.sx -= dif/2;
+							this.sy -= dif/2;
+							this.x -= dif/2*Math.cos(ang);
+							this.y -= dif/2*Math.sin(ang);
+							dot[j].data({'r': d.r+dif/2, 'x':d.x+dif/2*Math.cos(ang), 'y':d.y+dif/2*Math.sin(ang), 'vx': d.vx, 'vy': d.vy});
+						} else {
+							this.sx += dif/2;
+							this.sy += dif/2;
+							this.x -= dif/2*Math.cos(ang);
+							this.y -= dif/2*Math.sin(ang);
+							dot[j].data({'r': d.r-dif/2, 'x':d.x+dif/2*Math.cos(ang), 'y':d.y+dif/2*Math.sin(ang), 'vx': d.vx, 'vy': d.vy});
+						}
+					}
+				}
+				
+				dot[i].data({'r': this.sx, 'x':this.x, 'y':this.y, 'vx': vx, 'vy': vy});
 			}
 			
 			function make(i) {
@@ -113,7 +137,7 @@
 					ctx.fillStyle = hsvToHex(h, 1, 1);
         			ctx.fill();
 					ctx.closePath();
-				}).modify(dotModifier);
+				}).modify(dotModifier, i);
 			}
 			
 			
