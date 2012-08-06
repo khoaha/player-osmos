@@ -84,24 +84,26 @@
 				
 				// check for collision
 				for (var j=i+1; j<dot.length; j++) {
-					var xdif = dot[j].data().x - this.x;
-					var ydif = dot[j].data().y - this.y;
-					var dif = this.sx + dot[j].data().r - Math.sqrt(xdif*xdif+ydif*ydif);
-					if (dif < 0) {
-						var d = dot[j].data();
-						var ang = Math.atan2(ydif, xdif);
-						if (this.sx < d.r) {
-							this.sx -= dif/2;
-							this.sy -= dif/2;
-							this.x -= dif/2*Math.cos(ang);
-							this.y -= dif/2*Math.sin(ang);
-							dot[j].data({'r': d.r+dif/2, 'x':d.x+dif/2*Math.cos(ang), 'y':d.y+dif/2*Math.sin(ang), 'vx': d.vx, 'vy': d.vy});
+					var d = Math.sqrt(Math.pow(dot[j].data().x-this.x, 2) + Math.pow(dot[j].data().y-this.y, 2));
+					var r1, r2;
+					if (this.sx >= dot[j].data().r) {
+						r1 = this.sx;
+						r2 = dot[j].data().r;
+					} else {
+						r1 = dot[j].data().r;
+						r2 = this.sx;
+					}
+					if (d < r1 + r2) {
+						var o = dot[j].data();
+						var v = Math.PI * Math.pow(r1+r2-d, 2) * (d*d + 2*d*r2 - 3*r2*r2 + 2*d*r1 + 6*r1*r2 - 3*r1*r1) / (12*d);
+						if (this.sx >= o.r) {
+							this.sx = Math.pow(3*(4*r1*r1*r1/3 + v)/4, 1/3);
+							// TODO: removal case
+							dot[j].data({'r': Math.pow(3*(4*r2*r2*r2/3 - v)/4, 1/3), 'x':o.x, 'y':o.y, 'vx': o.vx, 'vy': o.vy});
 						} else {
-							this.sx += dif/2;
-							this.sy += dif/2;
-							this.x -= dif/2*Math.cos(ang);
-							this.y -= dif/2*Math.sin(ang);
-							dot[j].data({'r': d.r-dif/2, 'x':d.x+dif/2*Math.cos(ang), 'y':d.y+dif/2*Math.sin(ang), 'vx': d.vx, 'vy': d.vy});
+							this.sx = Math.pow(3*(4*r2*r2*r2/3 - v)/4, 1/3);
+							// TODO: removal case
+							dot[j].data({'r': Math.pow(3*(4*r1*r1*r1/3 + v)/4, 1/3), 'x':o.x, 'y':o.y, 'vx': o.vx, 'vy': o.vy});
 						}
 					}
 				}
