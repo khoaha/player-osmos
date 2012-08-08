@@ -17,6 +17,7 @@
             var scene1 = b();
 			
 			var dot = new Array(1);
+			var allMass;
 			
 			function toHex(n) {
 				return ((n < 16) ? '0' : '') + n.toString(16);
@@ -64,6 +65,8 @@
 				this.sx = dot[i].data().r;
 				this.sy = dot[i].data().r;
 				
+				this.alpha = .5 + Math.cos(t)/2;
+				
 				// reflect
 				if (this.x < this.sx) {
 					this.x = 2*this.sx - this.x;
@@ -96,21 +99,16 @@
 					if (d < r1 + r2) {
 						var o = dot[j].data();
 						var v;
-						if (d <= r2) {
+						if (d >= r1)
 							// intersection doesn't contain centers
 							v = Math.PI * Math.pow(r1+r2-d, 2) * (d*d + 2*d*r2 - 3*r2*r2 + 2*d*r1 + 6*r1*r2 - 3*r1*r1) / (12*d);
-							console.log(1);
-						} else if (d > r2 && d < 2*r2) {
+						else if (d > r1-r2 && d < r1)
 							// intersection contains centers
-							console.log(4);
 							v = 4*r2*r2*r2/3 - Math.PI * Math.pow(r1-r2-d, 2) * (d*d + 2*d*r1 - 3*r2*r2 - 2*d*r2 - 6*r1*r2 - 3*r1*r1) / (12*d*d*d);
-							console.log(2);
-						} else {
+						else
 							// instersection contains whole sphere
 							v = 4*r2*r2*r2/3;
-							console.log(3);
-						}
-						console.log(d, r1, r2, v, 4*r1*r1*r1/3, 4*r2*r2*r2/3);
+						console.log(r1+" <- "+d+" -> "+r2+"  ==>  "+(4*r1*r1*r1/3)+" <- "+v+" <- "+(4*r2*r2*r2/3));
 						if (this.sx >= o.r) {
 							this.sx = Math.pow(3*(4*r1*r1*r1/3 + v)/4, 1/3);
 							// TODO: removal case
@@ -126,42 +124,55 @@
 				dot[i].data({'r': this.sx, 'x':this.x, 'y':this.y, 'vx': vx, 'vy': vy});
 			}
 			
+			function bg() {
+				return b().paint(function(ctx) {
+					var h;
+					if (dot[0])
+						h = Math.min(4*Math.pow(dot[0].data().r, 3)/3/allMass, 1);
+					else
+						h = 0;
+					var grad = ctx.createLinearGradient(0, 0, 0, height);
+					grad.addColorStop(0, hsvToHex(.55, h, .67+h/3));
+					grad.addColorStop(1, hsvToHex(.55, h, h/3));
+					ctx.beginPath();
+					ctx.rect(0, 0, width, height);
+					ctx.fillStyle = grad;
+					ctx.fill();
+					ctx.closePath();
+				});
+			}
+			
 			function make(i) {
 				return b().paint(function(ctx) {
 					var h;
-					if (dot[i])
+					if (dot[0])
 						h = Math.min(dot[i].data().r/dot[0].data().r, 1);
 					else
 						h = 1;
 					
-					ctx.beginPath();
-					ctx.arc(0, 0, 1, 0, 2*Math.PI, false);
-					ctx.fillStyle = hsvToHex(h, 1, .7);
-        			ctx.fill();
-					ctx.closePath();
-					ctx.beginPath();
-					ctx.arc(-.1, -.1, .75, 0, 2*Math.PI, false);
-					ctx.fillStyle = hsvToHex(h, 1, .8);
-        			ctx.fill();
-					ctx.closePath();
-					ctx.beginPath();
-					ctx.arc(-.2, -.2, .5, 0, 2*Math.PI, false);
-					ctx.fillStyle = hsvToHex(h, 1, .9);
-        			ctx.fill();
-					ctx.closePath();
-					ctx.beginPath();
-					ctx.arc(-.3, -.3, .25, 0, 2*Math.PI, false);
-					ctx.fillStyle = hsvToHex(h, 1, 1);
-        			ctx.fill();
-					ctx.closePath();
+					//var tempCanvas = document.createElement('canvas');
+					//tempCanvas.width = width;
+					//tempCanvas.height = height;
+					//var tempCtx = tempCanvas.getContext('2d');
+					for (var n=0; n<4; n++) {
+						ctx.beginPath();
+						ctx.arc(-n/10, -n/10, 1-n/4, 0, 2*Math.PI, false);
+						ctx.fillStyle = hsvToHex(h, 1, .7+.1*n);
+        				ctx.fill();
+						ctx.closePath();
+					}
+					//ctx.drawImage(tempCanvas, 0, 0);
 				}).modify(dotModifier, i);
 			}
 			
 			
-            function start() {		
-				// 119/360
+            function start() {
+				scene1.add(bg());
+				
+				// test
 				dot[0] = make(0).data({'r': 20, 'x':20, 'y':20, 'vx': 0, 'vy': 0});
 				scene1.add(dot[0]);
+				allMass = 4*Math.pow(dot[0].data().r, 3)/3;
 				
 				scene1.on(C.X_MCLICK, function(evt) {
 					// find masses
@@ -169,7 +180,7 @@
 					var m = 4*Math.pow(dot[0].data().r, 3)/3;
 					var m1 = (1-e) * m;
 					var m2 = e*m;
-					console.log("!!!", m, m1, m2);
+					console.log("split: "+m+" -> "+m1+" + "+m2);
 					var r1 = Math.pow(3*m1/4, 1/3);
 					var r2 = Math.pow(3*m2/4, 1/3);
 					var vx = dot[0].data().vx;
