@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>Bejeweled - Animatron HTML5 Player Demo</title>
+		<title>Osmos - Animatron HTML5 Player Demo</title>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 		<script src="../player/vendor/matrix.js" type="text/javascript"></script>
 		<script src="../player/anm.player.js" type="text/javascript"></script>
@@ -14,8 +14,10 @@
 			// canvas
 			var width = 640;
 			var height = 480;
-			var background = b();
+			var scene1 = b();
             var foreground = b();
+			
+			var time = 0;
 			
 			var dot = new Array(1);
 			var allMass;
@@ -46,16 +48,7 @@
 			}
 			
 			var mainModifier = function(t) {
-				var vx = b(this.$).data().vx;
-				var vy = b(this.$).data().vy;
-				this.x = b(this.$).data().x + vx;
-				this.y = b(this.$).data().y + vy;
-				this.sx = b(this.$).data().r;
-				this.sy = b(this.$).data().r;
-				
-				//this.alpha = Math.cos(t)/2 + .5;
-				
-				b(this.$).data({'r': this.sx, 'x':this.x, 'y':this.y, 'vx': vx, 'vy': vy});
+				time = t;
 			}
 			
 			var dotModifier = function(t, i) {
@@ -65,8 +58,6 @@
 				this.y = dot[i].data().y + vy;
 				this.sx = dot[i].data().r;
 				this.sy = dot[i].data().r;
-				
-				//this.alpha = .5 + Math.cos(t)/2;
 				
 				// reflect
 				if (this.x < this.sx) {
@@ -83,8 +74,6 @@
 					this.y = 2*(height - this.sy) - this.y;
 					vy *= -1;
 				}
-				
-				//this.alpha = Math.cos(t)/2 + .5;
 				
 				// check for collision
 				for (var j=i+1; j<dot.length; j++) {
@@ -125,7 +114,7 @@
 				dot[i].data({'r': this.sx, 'x':this.x, 'y':this.y, 'vx': vx, 'vy': vy});
 			}
 			
-			function bg() {
+			function main() {
 				return b().paint(function(ctx) {
 					var h;
 					if (dot[0])
@@ -140,7 +129,11 @@
 					ctx.fillStyle = grad;
 					ctx.fill();
 					ctx.closePath();
-				});
+					
+					ctx.globalAlpha = .83 + Math.cos(time)/6;
+					ctx.drawImage(document.getElementById('fCanvas'), 0, 0);
+					ctx.globalAlpha = 1;
+				}).modify(mainModifier);
 			}
 			
 			function make(i) {
@@ -163,14 +156,14 @@
 			
 			
             function start() {
-				background.add(bg());
+				scene1.add(main());
 				
 				// test
 				dot[0] = make(0).data({'r': 20, 'x':20, 'y':20, 'vx': 0, 'vy': 0});
 				foreground.add(dot[0]);
 				allMass = 4*Math.pow(dot[0].data().r, 3)/3;
 				
-				foreground.on(C.X_MCLICK, function(evt) {
+				scene1.on(C.X_MCLICK, function(evt) {
 					// find masses
 					var e = .1;
 					var m = 4*Math.pow(dot[0].data().r, 3)/3;
@@ -203,8 +196,8 @@
 					foreground.add(dot[l]);
 				});
 				
-				createPlayer('bCanvas', {'mode': C.M_DYNAMIC}).load(background).play();
-				createPlayer('fCanvas', {'mode': C.M_DYNAMIC}).load(foreground).play();
+				createPlayer('canvas', {'mode': C.M_DYNAMIC}).load(scene1).play();
+				createPlayer('fCanvas', {'mode': C.M_DYNAMIC, 'cnvs': {'bgfill': 'rgba(255, 255, 255, 0)'}}).load(foreground).play();
     
             }
         </script>
@@ -214,8 +207,8 @@
 		<h1>Osmos - Animatron HTML5 Player Demo</h1>
 
 		<!-- canvases -->
-		<canvas id="bCanvas" width="640" height="480" style="z-index:1; position:absolute; left:0px; top:64px;"></canvas>
-        <canvas id="fCanvas" width="640" height="480" style="z-index:2; position:absolute; left:100px; top:64px;"></canvas>
+		<canvas id="canvas" width="640" height="480"></canvas>
+        <canvas id="fCanvas" width="640" height="480" style="display:none;"></canvas>
 
 	</body>
 
