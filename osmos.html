@@ -11,10 +11,11 @@
 		<script type="text/javascript">
 			var b = Builder._$, B = Builder, C = anm.C;
 			
-			// canvas1
+			// canvas
 			var width = 640;
 			var height = 480;
-            var scene1 = b();
+			var background = b();
+            var foreground = b();
 			
 			var dot = new Array(1);
 			var allMass;
@@ -65,7 +66,7 @@
 				this.sx = dot[i].data().r;
 				this.sy = dot[i].data().r;
 				
-				this.alpha = .5 + Math.cos(t)/2;
+				//this.alpha = .5 + Math.cos(t)/2;
 				
 				// reflect
 				if (this.x < this.sx) {
@@ -150,10 +151,6 @@
 					else
 						h = 1;
 					
-					//var tempCanvas = document.createElement('canvas');
-					//tempCanvas.width = width;
-					//tempCanvas.height = height;
-					//var tempCtx = tempCanvas.getContext('2d');
 					for (var n=0; n<4; n++) {
 						ctx.beginPath();
 						ctx.arc(-n/10, -n/10, 1-n/4, 0, 2*Math.PI, false);
@@ -161,20 +158,19 @@
         				ctx.fill();
 						ctx.closePath();
 					}
-					//ctx.drawImage(tempCanvas, 0, 0);
 				}).modify(dotModifier, i);
 			}
 			
 			
             function start() {
-				scene1.add(bg());
+				background.add(bg());
 				
 				// test
 				dot[0] = make(0).data({'r': 20, 'x':20, 'y':20, 'vx': 0, 'vy': 0});
-				scene1.add(dot[0]);
+				foreground.add(dot[0]);
 				allMass = 4*Math.pow(dot[0].data().r, 3)/3;
 				
-				scene1.on(C.X_MCLICK, function(evt) {
+				foreground.on(C.X_MCLICK, function(evt) {
 					// find masses
 					var e = .1;
 					var m = 4*Math.pow(dot[0].data().r, 3)/3;
@@ -204,10 +200,11 @@
 					dot[0].data({'r': r1, 'x':x, 'y':y, 'vx': vx1, 'vy': vy1});
 					var l = dot.length;
 					dot.push(make(l).data({'r': r2, 'x':x+(r1+r2)*Math.cos(a), 'y':y+(r1+r2)*Math.sin(a), 'vx': vx2, 'vy': vy2}));
-					scene1.add(dot[l]);
+					foreground.add(dot[l]);
 				});
 				
-                createPlayer('canvas1', {'mode': C.M_DYNAMIC}).load(scene1).play();
+				createPlayer('bCanvas', {'mode': C.M_DYNAMIC}).load(background).play();
+				createPlayer('fCanvas', {'mode': C.M_DYNAMIC}).load(foreground).play();
     
             }
         </script>
@@ -216,8 +213,9 @@
 	<body onload="start();">
 		<h1>Osmos - Animatron HTML5 Player Demo</h1>
 
-		<!-- canvas1 -->
-		<canvas id="canvas1" width="640" height="480"></canvas>
+		<!-- canvases -->
+		<canvas id="bCanvas" width="640" height="480" style="z-index:1; position:absolute; left:0px; top:64px;"></canvas>
+        <canvas id="fCanvas" width="640" height="480" style="z-index:2; position:absolute; left:100px; top:64px;"></canvas>
 
 	</body>
 
