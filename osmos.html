@@ -15,6 +15,7 @@
 			var width = 640;
 			var height = 480;
 			var scene1 = b();
+			var background = b();
             var foreground = b();
 			
 			var time = 0;
@@ -49,6 +50,10 @@
 			
 			var mainModifier = function(t) {
 				time = t;
+				
+				// add bubbles
+				if (Math.random() < .15)			
+					background.add(bubble());
 			}
 			
 			var dotModifier = function(t, i) {
@@ -114,6 +119,26 @@
 				dot[i].data({'r': this.sx, 'x':this.x, 'y':this.y, 'vx': vx, 'vy': vy});
 			}
 			
+			var bubbleModifier = function(t) {
+				if (!b(this.$).data().init) {
+					var d = b(this.$).data();
+					this.x = Math.random()*width;
+					this.y = height + b(this.$).data().r;
+					b(this.$).data({'init': true, 'r': d.r, 'v': d.v, 'm': d.m});
+				} else {
+					var v = b(this.$).data().v;
+					this.x += v/2*Math.sin(t + v);
+					this.y -= v;
+					this.sx = b(this.$).data().r;
+					this.sy = b(this.$).data().r;
+					var a = (this.y - b(this.$).data().m) / (height - b(this.$).data().m);
+					if (a > 0)
+						b(this.$).stroke('rgba(255, 255, 255, '+a/2+')', 1/3);
+					else
+						background.remove(this);
+				}
+			}
+			
 			function main() {
 				return b().paint(function(ctx) {
 					var h;
@@ -130,6 +155,11 @@
 					ctx.fill();
 					ctx.closePath();
 					
+					// draw background
+					ctx.globalAlpha = 1;
+					ctx.drawImage(document.getElementById('bCanvas'), 0, 0);
+					
+					// draw foreground
 					ctx.globalAlpha = .83 + Math.cos(time)/6;
 					ctx.drawImage(document.getElementById('fCanvas'), 0, 0);
 					ctx.globalAlpha = 1;
@@ -154,9 +184,20 @@
 				}).modify(dotModifier, i);
 			}
 			
+			function bubble() {
+				var r = Math.random()*4+2;
+				var v = Math.random()*4+2;
+				var m = Math.random()*320+r;
+				return b().circle([ 0, 0 ], 1).fill('rgba(255, 255, 255, 0)')
+				.data({'init': false, 'r': r, 'v': v, 'm': m})
+				.modify(bubbleModifier);
+			}
 			
             function start() {
 				scene1.add(main());
+				
+				// doesn't work
+				//scene1.add(b().path('M177.69 0 c-10.32 9 -6.062 -29.632 -10.14 -51.742 -10.14 S84.535 -6.061 74.206 0 c10.329 6.061 29.632 10.139 51.742 10.139 C148.058 10.14 167.361 6.062 177.69 0 z'));
 				
 				// test
 				dot[0] = make(0).data({'r': 20, 'x':20, 'y':20, 'vx': 0, 'vy': 0});
@@ -197,6 +238,7 @@
 				});
 				
 				createPlayer('canvas', {'mode': C.M_DYNAMIC}).load(scene1).play();
+				createPlayer('bCanvas', {'mode': C.M_DYNAMIC, 'cnvs': {'bgfill': 'rgba(255, 255, 255, 0)'}}).load(background).play();
 				createPlayer('fCanvas', {'mode': C.M_DYNAMIC, 'cnvs': {'bgfill': 'rgba(255, 255, 255, 0)'}}).load(foreground).play();
     
             }
@@ -208,6 +250,7 @@
 
 		<!-- canvases -->
 		<canvas id="canvas" width="640" height="480"></canvas>
+        <canvas id="bCanvas" width="640" height="480" style="display:none;"></canvas>
         <canvas id="fCanvas" width="640" height="480" style="display:none;"></canvas>
 
 	</body>
