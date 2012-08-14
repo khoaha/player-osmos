@@ -20,8 +20,54 @@
 			
 			var time = 0;
 			
-			var dot = new Array(1);
-			var allMass;
+			var dot;
+			var allMass = 0;
+			
+			var rand = new Rc4Random("seed");
+			
+			// RNG implementation from http://www.webdeveloper.com/forum/showthread.php?t=140572
+			function Rc4Random(seed) {
+				var keySchedule = [];
+				var keySchedule_i = 0;
+				var keySchedule_j = 0;
+				
+				function init(seed) {
+					for (var i = 0; i < 256; i++)
+						keySchedule[i] = i;
+					
+					var j = 0;
+					for (var i = 0; i < 256; i++)
+					{
+						j = (j + keySchedule[i] + seed.charCodeAt(i % seed.length)) % 256;
+						
+						var t = keySchedule[i];
+						keySchedule[i] = keySchedule[j];
+						keySchedule[j] = t;
+					}
+				}
+				init(seed);
+				
+				function getRandomByte() {
+					keySchedule_i = (keySchedule_i + 1) % 256;
+					keySchedule_j = (keySchedule_j + keySchedule[keySchedule_i]) % 256;
+					
+					var t = keySchedule[keySchedule_i];
+					keySchedule[keySchedule_i] = keySchedule[keySchedule_j];
+					keySchedule[keySchedule_j] = t;
+					
+					return keySchedule[(keySchedule[keySchedule_i] + keySchedule[keySchedule_j]) % 256];
+				}
+				
+				this.getRandomNumber = function() {
+					var number = 0;
+					var multiplier = 1;
+					for (var i = 0; i < 8; i++) {
+						number += getRandomByte() * multiplier;
+						multiplier *= 256;
+					}
+					return number / 18446744073709551616;
+				}
+			}
 			
 			function toHex(n) {
 				return ((n < 16) ? '0' : '') + n.toString(16);
@@ -52,10 +98,8 @@
 				time = t;
 				
 				// add bubbles
-				if (Math.random() < .15 && t<1) {		
-					console.log("!!!");
+				if (Math.random() < .15)
 					background.add(bubble());
-				}
 			}
 			
 			var dotModifier = function(t, i) {
@@ -122,8 +166,6 @@
 			}
 			
 			var bubbleModifier = function(t) {
-				if (t < 3)
-					console.log(b(this.$).data().init);
 				if (!b(this.$).data().init) {
 					var d = b(this.$).data();
 					this.x = Math.random()*width;
@@ -143,6 +185,30 @@
 						background.remove(this.$);
 					}
 				}
+			}
+			
+			function ring() {
+				return b().paint(function(ctx) {
+					if (dot[0]) {
+						var x = dot[0].data().x;
+						var y = dot[0].data().y;
+						var r = dot[0].data().r + 2*(Math.sin(time*6)/2 + .5);
+						var h = 4;
+						var hw = 3;
+						
+						ctx.fillStyle = '#ffffff';
+						for (var i=0; i<4; i++) {
+							var t = time*1.5 + Math.PI/2*i;
+							ctx.beginPath();
+							ctx.moveTo(x+r*Math.cos(t), y+r*Math.sin(t));
+							ctx.lineTo(x+(r+h)*Math.cos(t)+hw*Math.sin(t), y+(r+h)*Math.sin(t)-hw*Math.cos(t));
+							ctx.lineTo(x+(r+h)*Math.cos(t)-hw*Math.sin(t), y+(r+h)*Math.sin(t)+hw*Math.cos(t));
+							ctx.lineTo(x+r*Math.cos(t), y+r*Math.sin(t));
+							ctx.fill();
+							ctx.closePath();
+						}
+					}
+				});
 			}
 			
 			function main() {
@@ -205,9 +271,24 @@
 				//scene1.add(b().path('M177.69 0 c-10.32 9 -6.062 -29.632 -10.14 -51.742 -10.14 S84.535 -6.061 74.206 0 c10.329 6.061 29.632 10.139 51.742 10.139 C148.058 10.14 167.361 6.062 177.69 0 z'));
 				
 				// test
-				dot[0] = make(0).data({'r': 20, 'x':20, 'y':20, 'vx': 0, 'vy': 0});
-				foreground.add(dot[0]);
-				allMass = 4*Math.pow(dot[0].data().r, 3)/3;
+				//dot[0] = make(0).data({'r': 20, 'x':20, 'y':20, 'vx': 0, 'vy': 0});
+				//foreground.add(dot[0]);
+				//allMass = 4*Math.pow(dot[0].data().r, 3)/3;
+				
+				// create level
+				var n = Math.floor(rand.getRandomNumber()*35+25);
+				dot = new Array(n);
+				for (var i=0; i<n; i++) {
+					var r = rand.getRandomNumber()*8+4;
+					var v = (i==0) ? 0 : Math.pow(rand.getRandomNumber(), 2);
+					var a = rand.getRandomNumber()*2*Math.PI;
+					dot[i] = make(i).data({'r': r, 'x':rand.getRandomNumber()*(width-2*r)+r, 'y':rand.getRandomNumber()*(height-2*r)+r, 'vx': v*Math.cos(a), 'vy': v*Math.sin(a)});
+					foreground.add(dot[i]);
+					allMass += 4*r*r*r/3;
+				}
+				
+				// add ring
+				foreground.add(ring());
 				
 				scene1.on(C.X_MCLICK, function(evt) {
 					// find masses
@@ -243,8 +324,8 @@
 				});
 				
 				createPlayer('canvas', {'mode': C.M_DYNAMIC}).load(scene1).play();
-				createPlayer('bCanvas', {'mode': C.M_DYNAMIC, 'cnvs': {'bgfill': 'rgba(255, 255, 255, 0)'}}).load(background).play();
-				//createPlayer('fCanvas', {'mode': C.M_DYNAMIC, 'cnvs': {'bgfill': 'rgba(255, 255, 255, 0)'}}).load(foreground).play();
+				//createPlayer('bCanvas', {'mode': C.M_DYNAMIC, 'cnvs': {'bgfill': 'rgba(255, 255, 255, 0)'}}).load(background).play();
+				createPlayer('fCanvas', {'mode': C.M_DYNAMIC, 'cnvs': {'bgfill': 'rgba(255, 255, 255, 0)'}}).load(foreground).play();
     
             }
         </script>
