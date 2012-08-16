@@ -21,6 +21,8 @@
             var foreground = b();
 			
 			var time = 0;
+			var over = false;
+			var warn = false;
 			
 			var dot;
 			var allMass = 0;
@@ -96,8 +98,40 @@
 				return '#' + toHex(Math.floor(r*255)) + toHex(Math.floor(g*255)) + toHex(Math.floor(b*255));
 			}
 			
+			function dangerCheck() {
+				var num = 0;
+				for (var i=0; i<dot.length; i++) {
+					if (dot[i].data().r > 0)
+						num++;
+				}
+				if (4*Math.pow(dot[0].data().r, 3)/3/allMass < 1/num) {
+					// TODO: add to ui layer
+					foreground.add(b().paint(function(ctx) {
+      					ctx.font = '12pt Quando';
+						ctx.fillStyle = '#ffffff';
+      					ctx.fillText("It doesn't look so good...", 420, 472);
+    				}).alpha([time, time+3], [0, 1]));
+					warn = true;
+				}
+			}
+			
 			var mainModifier = function(t) {
 				time = t;
+				
+				// check for win condition
+				var winCond = .67;
+				if (!over && allMass > 0)
+					if (4*Math.pow(dot[0].data().r, 3)/3/allMass >= winCond) {
+						// TODO: add to ui layer
+						foreground.add(b().paint(function(ctx) {
+							ctx.font = '30pt Quando';
+							ctx.fillStyle = '#ffffff';
+							ctx.fillText('Stage Clear', 196, 240);
+						}).trans([t, t+3], [[0, 32], [0, 0]], C.E_COUT)
+						.alpha([t, t+3], [0, 1]));
+						over = true;
+					} else if (!warn)
+						dangerCheck();
 				
 				// add bubbles
 				if (Math.random() < .15)
@@ -167,7 +201,7 @@
 							if (4*r2*r2*r2/3 <= v) {
 								this.sx = 0;
 								// removal case
-								if (i == 0) {
+								if (i == 0 && !over) {
 									// trigger game over
 									// TODO: add to ui layer
 									foreground.add(b().paint(function(ctx) {
@@ -175,6 +209,7 @@
 										ctx.fillStyle = '#ffffff';
       									ctx.fillText('Game Over', 196, 240);
     								}).alpha([t, t+3], [0, 1]));
+									over = true;
 								} else {
 									//foreground.remove(dot[i]);
 									//dot.splice(i, 1);
@@ -213,7 +248,7 @@
 			
 			function ring() {
 				return b().paint(function(ctx) {
-					if (dot[0]) {
+					if (dot[0] && dot[0].data().r > 0) {
 						var x = dot[0].data().x;
 						var y = dot[0].data().y;
 						var r = dot[0].data().r + 2*(Math.sin(time*6)/2 + .5);
