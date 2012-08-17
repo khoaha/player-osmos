@@ -20,14 +20,16 @@
 			var background = b();
             var foreground = b();
 			
+			var startTime;
 			var time = 0;
-			var over = false;
-			var warn = false;
+			var over;
+			var warn;
 			
 			var dot;
-			var allMass = 0;
+			var allMass;
 			
-			var rand = new Rc4Random("seeder");
+			var rand;
+			var seed = ".";
 			
 			// RNG implementation from http://www.webdeveloper.com/forum/showthread.php?t=140572
 			function Rc4Random(seed) {
@@ -116,7 +118,7 @@
 			}
 			
 			var mainModifier = function(t) {
-				time = t;
+				time = t - startTime;
 				
 				// check for win condition
 				var winCond = .67;
@@ -139,89 +141,98 @@
 			}
 			
 			var dotModifier = function(t, i) {
-				var vx = dot[i].data().vx;
-				var vy = dot[i].data().vy;
-				this.x = dot[i].data().x + vx;
-				this.y = dot[i].data().y + vy;
-				this.sx = dot[i].data().r;
-				this.sy = dot[i].data().r;
-				
-				// reflect
-				if (this.x < this.sx) {
-					this.x = 2*this.sx - this.x;
-					vx *= -1;
-				} else if (this.x > width - this.sx) {
-					this.x = 2*(width - this.sx) - this.x;
-					vx *= -1;
-				}
-				if (this.y < this.sy) {
-					this.y = 2*this.sy - this.y;
-					vy *= -1;
-				} else if (this.y > height - this.sy) {
-					this.y = 2*(height - this.sy) - this.y;
-					vy *= -1;
-				}
-				
-				// check for collision
-				for (var j=i+1; j<dot.length; j++) {
-					var d = Math.sqrt(Math.pow(dot[j].data().x-this.x, 2) + Math.pow(dot[j].data().y-this.y, 2));
-					var r1, r2;
-					if (this.sx >= dot[j].data().r) {
-						r1 = this.sx;
-						r2 = dot[j].data().r;
-					} else {
-						r1 = dot[j].data().r;
-						r2 = this.sx;
+				if (startTime != 0 && time < 2)
+						console.log("wtf", i, dot.length, dot[i]);
+				if (dot[i].data().r > 0) {
+					var vx = dot[i].data().vx;
+					var vy = dot[i].data().vy;
+					this.x = dot[i].data().x + vx;
+					this.y = dot[i].data().y + vy;
+					this.sx = dot[i].data().r;
+					this.sy = dot[i].data().r;
+					
+					// reflect
+					if (this.x < this.sx) {
+						this.x = 2*this.sx - this.x;
+						vx *= -1;
+					} else if (this.x > width - this.sx) {
+						this.x = 2*(width - this.sx) - this.x;
+						vx *= -1;
 					}
-					if (d < r1 + r2) {
-						var o = dot[j].data();
-						var v;
-						if (d >= r1)
-							// intersection doesn't contain centers
-							v = Math.PI * Math.pow(r1+r2-d, 2) * (d*d + 2*d*r2 - 3*r2*r2 + 2*d*r1 + 6*r1*r2 - 3*r1*r1) / (12*d);
-						else if (d > r1-r2 && d < r1)
-							// intersection contains centers
-							v = 4*r2*r2*r2/3 - Math.PI * Math.pow(r1-r2-d, 2) * (d*d + 2*d*r1 - 3*r2*r2 - 2*d*r2 - 6*r1*r2 - 3*r1*r1) / (12*d*d*d);
-						else
-							// instersection contains whole sphere
-							v = 4*r2*r2*r2/3;
-						console.log(r1+" <- "+d+" -> "+r2+"  ==>  "+(4*r1*r1*r1/3)+" <- "+v+" <- "+(4*r2*r2*r2/3));
-						if (this.sx >= o.r) {
-							this.sx = Math.pow(3*(4*r1*r1*r1/3 + v)/4, 1/3);
-							var m2 = Math.pow(3*(4*r2*r2*r2/3 - v)/4, 1/3);
-							if (m2 <= 0) {
-								// TODO: removal case
-								//console.log("remove smaller: "+i+" <- "+j+" ("+dot.length+")");
-								//foreground.remove(dot[j]);
-								//dot.splice(j, 1);
-								//j -= 1;
-							} else
-								dot[j].data({'r': m2, 'x':o.x, 'y':o.y, 'vx': o.vx, 'vy': o.vy});
-						} else {
-							if (4*r2*r2*r2/3 <= v) {
-								this.sx = 0;
-								// removal case
-								if (i == 0 && !over) {
-									// trigger game over
-									// TODO: add to ui layer
-									foreground.add(b().paint(function(ctx) {
-      									ctx.font = '30pt Quando';
-										ctx.fillStyle = '#ffffff';
-      									ctx.fillText('Game Over', 196, 240);
-    								}).alpha([t, t+3], [0, 1]));
-									over = true;
+					if (this.y < this.sy) {
+						this.y = 2*this.sy - this.y;
+						vy *= -1;
+					} else if (this.y > height - this.sy) {
+						this.y = 2*(height - this.sy) - this.y;
+						vy *= -1;
+					}
+					
+					// check for collision
+					for (var j=i+1; j<dot.length; j++) {
+						if (dot[j].data().r > 0) {
+							var d = Math.sqrt(Math.pow(dot[j].data().x-this.x, 2) + Math.pow(dot[j].data().y-this.y, 2));
+							var r1, r2;
+							if (this.sx >= dot[j].data().r) {
+								r1 = this.sx;
+								r2 = dot[j].data().r;
+							} else {
+								r1 = dot[j].data().r;
+								r2 = this.sx;
+							}
+							if (d < r1 + r2) {
+								var o = dot[j].data();
+								var v;
+								if (d >= r1)
+									// intersection doesn't contain centers
+									v = Math.PI * Math.pow(r1+r2-d, 2) * (d*d + 2*d*r2 - 3*r2*r2 + 2*d*r1 + 6*r1*r2 - 3*r1*r1) / (12*d);
+								else if (d > r1-r2 && d < r1)
+									// intersection contains centers
+									v = 4*r2*r2*r2/3 - Math.PI * Math.pow(r1-r2-d, 2) * (d*d + 2*d*r1 - 3*r2*r2 - 2*d*r2 - 6*r1*r2 - 3*r1*r1) / (12*d*d*d);
+								else
+									// instersection contains whole sphere
+									v = 4*r2*r2*r2/3;
+								//console.log(r1+" <- "+d+" -> "+r2+"  ==>  "+(4*r1*r1*r1/3)+" <- "+v+" <- "+(4*r2*r2*r2/3));
+								if (this.sx >= o.r) {
+									this.sx = Math.pow(3*(4*r1*r1*r1/3 + v)/4, 1/3);
+									var m2 = Math.pow(3*(4*r2*r2*r2/3 - v)/4, 1/3);
+									if (m2 <= 0) {
+										// TODO: removal case
+										//console.log("remove smaller: "+i+" <- "+j+" ("+dot.length+")");
+										//foreground.remove(dot[j]);
+										//dot.splice(j, 1);
+										//j -= 1;
+									} else
+										dot[j].data({'r': m2, 'x':o.x, 'y':o.y, 'vx': o.vx, 'vy': o.vy});
 								} else {
-									//foreground.remove(dot[i]);
-									//dot.splice(i, 1);
+									if (4*r2*r2*r2/3 <= v) {
+										this.sx = 0;
+										// removal case
+										if (i == 0 && !over) {
+											// trigger game over
+											// TODO: add to ui layer
+											foreground.add(b().paint(function(ctx) {
+												ctx.font = '30pt Quando';
+												ctx.fillStyle = '#ffffff';
+												ctx.fillText('Game Over', 196, 240);
+											}).alpha([t, t+3], [0, 1]));
+											over = true;
+										} else {
+											//foreground.remove(dot[i]);
+											//dot.splice(i, 1);
+										}
+										break;
+									} else
+										this.sx = Math.pow(3*(4*r2*r2*r2/3 - v)/4, 1/3);
+									dot[j].data({'r': Math.pow(3*(4*r1*r1*r1/3 + v)/4, 1/3), 'x':o.x, 'y':o.y, 'vx': o.vx, 'vy': o.vy});
 								}
-								break;
-							} else
-								this.sx = Math.pow(3*(4*r2*r2*r2/3 - v)/4, 1/3);
-							dot[j].data({'r': Math.pow(3*(4*r1*r1*r1/3 + v)/4, 1/3), 'x':o.x, 'y':o.y, 'vx': o.vx, 'vy': o.vy});
+							}
 						}
 					}
+					dot[i].data({'r': this.sx, 'x':this.x, 'y':this.y, 'vx': vx, 'vy': vy});
+				} else {
+					this.sx = 0;
+					this.sy = 0;
 				}
-				dot[i].data({'r': this.sx, 'x':this.x, 'y':this.y, 'vx': vx, 'vy': vy});
 			}
 			
 			var bubbleModifier = function(t) {
@@ -239,10 +250,8 @@
 					var a = (this.y - b(this.$).data().m) / (height - b(this.$).data().m);
 					if (a > 0)
 						b(this.$).stroke('rgba(255, 255, 255, '+a/2+')', 1/3);
-					else {
-						console.log("out");
+					else
 						background.remove(this.$);
-					}
 				}
 			}
 			
@@ -323,20 +332,29 @@
 				.modify(bubbleModifier);
 			}
 			
-            function start() {
-				scene1.add(main());
+			function clear() {
+				background.deach(function(elm) {
+					background.remove(elm);
+   				});
+				foreground.deach(function(elm) {
+					foreground.remove(elm);
+   				});
+				// TODO: clear UI layer
+			}
+			
+			function set() {
+				// set state vars
+				startTime = time;
+				over = false;
+				warn = false;
 				
-				// doesn't work
-				//scene1.add(b().path('M177.69 0 c-10.32 9 -6.062 -29.632 -10.14 -51.742 -10.14 S84.535 -6.061 74.206 0 c10.329 6.061 29.632 10.139 51.742 10.139 C148.058 10.14 167.361 6.062 177.69 0 z'));
-				
-				// test
-				//dot[0] = make(0).data({'r': 20, 'x':20, 'y':20, 'vx': 0, 'vy': 0});
-				//foreground.add(dot[0]);
-				//allMass = 4*Math.pow(dot[0].data().r, 3)/3;
+				// set seed
+				rand = new Rc4Random(seed);
 				
 				// create level
 				var n = Math.floor(rand.getRandomNumber()*35+25);
 				dot = new Array(n);
+				allMass = 0;
 				for (var i=0; i<n; i++) {
 					var r = (i==0 ? Math.pow(rand.getRandomNumber(), 1/3) : rand.getRandomNumber())*8+4;
 					var v = (i==0) ? 0 : Math.pow(rand.getRandomNumber(), 3)*.67;
@@ -348,14 +366,29 @@
 				
 				// add ring
 				foreground.add(ring());
+			}
+			
+			function setSeed(val) {
+				seed = val;
+				clear();
+				set();
+			}
+			
+            function start() {
+				scene1.add(main());
 				
+				// doesn't work
+				//scene1.add(b().path('M177.69 0 c-10.32 9 -6.062 -29.632 -10.14 -51.742 -10.14 S84.535 -6.061 74.206 0 c10.329 6.061 29.632 10.139 51.742 10.139 C148.058 10.14 167.361 6.062 177.69 0 z'));
+				
+				set();
+						
 				scene1.on(C.X_MCLICK, function(evt) {
 					// find masses
 					var e = .1;
 					var m = 4*Math.pow(dot[0].data().r, 3)/3;
 					var m1 = (1-e) * m;
 					var m2 = e*m;
-					console.log("split: "+m+" -> "+m1+" + "+m2);
+					//console.log("split: "+m+" -> "+m1+" + "+m2);
 					var r1 = Math.pow(3*m1/4, 1/3);
 					var r2 = Math.pow(3*m2/4, 1/3);
 					var vx = dot[0].data().vx;
@@ -397,6 +430,11 @@
 		<canvas id="canvas" width="640" height="480"></canvas>
         <canvas id="bCanvas" width="640" height="480" style="display:none;"></canvas>
         <canvas id="fCanvas" width="640" height="480" style="display:none;"></canvas>
+        
+        <form name="inputForm" action="JavaScript:setSeed(document.forms['inputForm']['seed'].value)" method="post">
+			Code: <input type="text" name="seed">
+			<input type="submit" value="Set">
+		</form>
 
 	</body>
 
