@@ -332,6 +332,10 @@
 				.modify(bubbleModifier);
 			}
 			
+			function petal() {
+				return b().path('M32 0 C64 16 128 16 160 0 C128 -16 64 -16 32 0 Z').move([160, 0]).add(b().circle([0, 0])).fill('#fff').nostroke();
+			}
+			
 			function clear() {
 				background.deach(function(elm) {
 					background.remove(elm);
@@ -377,8 +381,8 @@
             function start() {
 				scene1.add(main());
 				
-				// doesn't work
-				//scene1.add(b().path('M177.69 0 c-10.32 9 -6.062 -29.632 -10.14 -51.742 -10.14 S84.535 -6.061 74.206 0 c10.329 6.061 29.632 10.139 51.742 10.139 C148.058 10.14 167.361 6.062 177.69 0 z'));
+				// test
+				scene1.add(petal());
 				
 				set();
 						
@@ -416,7 +420,7 @@
 				});
 				
 				createPlayer('canvas', {'mode': C.M_DYNAMIC}).load(scene1).play();
-				//createPlayer('bCanvas', {'mode': C.M_DYNAMIC, 'cnvs': {'bgfill': 'rgba(255, 255, 255, 0)'}}).load(background).play();
+				createPlayer('bCanvas', {'mode': C.M_DYNAMIC, 'cnvs': {'bgfill': 'rgba(255, 255, 255, 0)'}}).load(background).play();
 				createPlayer('fCanvas', {'mode': C.M_DYNAMIC, 'cnvs': {'bgfill': 'rgba(255, 255, 255, 0)'}}).load(foreground).play();
     
             }
