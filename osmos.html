@@ -333,7 +333,14 @@
 			}
 			
 			function petal() {
-				return b().path('M32 0 C64 16 128 16 160 0 C128 -16 64 -16 32 0 Z').move([160, 0]).add(b().circle([0, 0])).fill('#fff').nostroke();
+				return b().circle([72, 0], 12).add(
+				b().path('M32 0 C64 16 128 16 160 0 C128 -16 64 -16 32 0 Z').move([128, 0]).fill('#fff').nostroke())
+				.fill('#fff').nostroke().move([-72, 0]).reg([-72, 0])
+				.modify(function(t) {
+					this.angle += .01;
+					if (this.angle >= 1.75)
+						this.angle -= 1.93;
+				});
 			}
 			
 			function clear() {
