@@ -346,14 +346,8 @@
 			}
 			
 			function clear() {
-				var childrenClone = [].concat(background.v.children);
-				for (elm in childrenClone) {
-      				background.remove(elm);
-   				}
-				var childrenClone = [].concat(foreground.v.children);
-				for (elm in childrenClone) {
-      				foreground.remove(elm);
-   				}
+      			background.clear();
+				foreground.clear();
 				// TODO: clear UI layer
 			}
 			
