@@ -141,8 +141,10 @@
 			}
 			
 			var dotModifier = function(t, i) {
-				if (startTime != 0 && time < 2)
-						console.log("wtf", i, dot.length, dot[i]);
+				if (startTime > 0 && time < .05) {
+					console.log(i);
+					console.log(dot[i].data());
+				}
 				if (dot[i].data().r > 0) {
 					var vx = dot[i].data().vx;
 					var vy = dot[i].data().vy;
@@ -344,12 +346,14 @@
 			}
 			
 			function clear() {
-				background.deach(function(elm) {
-					background.remove(elm);
-   				});
-				foreground.deach(function(elm) {
-					foreground.remove(elm);
-   				});
+				var childrenClone = [].concat(background.v.children);
+				for (elm in childrenClone) {
+      				background.remove(elm);
+   				}
+				var childrenClone = [].concat(foreground.v.children);
+				for (elm in childrenClone) {
+      				foreground.remove(elm);
+   				}
 				// TODO: clear UI layer
 			}
 			
