@@ -19,6 +19,7 @@
 			var scene1 = b();
 			var background = b();
             var foreground = b();
+			var ui = b();
 			
 			var startTime;
 			var time = 0;
@@ -27,6 +28,8 @@
 			
 			var dot;
 			var allMass;
+			
+			var petalInit;
 			
 			var rand;
 			var seed = ".";
@@ -107,8 +110,7 @@
 						num++;
 				}
 				if (4*Math.pow(dot[0].data().r, 3)/3/allMass < 1/num) {
-					// TODO: add to ui layer
-					foreground.add(b().paint(function(ctx) {
+					ui.add(b().paint(function(ctx) {
       					ctx.font = '12pt Quando';
 						ctx.fillStyle = '#ffffff';
       					ctx.fillText("It doesn't look so good...", 420, 472);
@@ -124,8 +126,7 @@
 				var winCond = .67;
 				if (!over && allMass > 0)
 					if (4*Math.pow(dot[0].data().r, 3)/3/allMass >= winCond) {
-						// TODO: add to ui layer
-						foreground.add(b().paint(function(ctx) {
+						ui.add(b().paint(function(ctx) {
 							ctx.font = '30pt Quando';
 							ctx.fillStyle = '#ffffff';
 							ctx.fillText('Stage Clear', 196, 240);
@@ -197,13 +198,7 @@
 								if (this.sx >= o.r) {
 									this.sx = Math.pow(3*(4*r1*r1*r1/3 + v)/4, 1/3);
 									var m2 = Math.pow(3*(4*r2*r2*r2/3 - v)/4, 1/3);
-									if (m2 <= 0) {
-										// TODO: removal case
-										//console.log("remove smaller: "+i+" <- "+j+" ("+dot.length+")");
-										//foreground.remove(dot[j]);
-										//dot.splice(j, 1);
-										//j -= 1;
-									} else
+									if (m2 > 0)
 										dot[j].data({'r': m2, 'x':o.x, 'y':o.y, 'vx': o.vx, 'vy': o.vy});
 								} else {
 									if (4*r2*r2*r2/3 <= v) {
@@ -211,16 +206,12 @@
 										// removal case
 										if (i == 0 && !over) {
 											// trigger game over
-											// TODO: add to ui layer
-											foreground.add(b().paint(function(ctx) {
+											ui.add(b().paint(function(ctx) {
 												ctx.font = '30pt Quando';
 												ctx.fillStyle = '#ffffff';
 												ctx.fillText('Game Over', 196, 240);
 											}).alpha([t, t+3], [0, 1]));
 											over = true;
-										} else {
-											//foreground.remove(dot[i]);
-											//dot.splice(i, 1);
 										}
 										break;
 									} else
@@ -304,6 +295,9 @@
 					ctx.globalAlpha = .83 + Math.cos(time)/6;
 					ctx.drawImage(document.getElementById('fCanvas'), 0, 0);
 					ctx.globalAlpha = 1;
+					
+					// draw ui
+					ctx.drawImage(document.getElementById('uCanvas'), 0, 0);
 				}).modify(mainModifier);
 			}
 			
@@ -334,21 +328,27 @@
 				.modify(bubbleModifier);
 			}
 			
-			function petal() {
+			function petal(angle) {
 				return b().circle([72, 0], 12).add(
 				b().path('M32 0 C64 16 128 16 160 0 C128 -16 64 -16 32 0 Z').move([128, 0]).fill('#fff').nostroke())
-				.fill('#fff').nostroke().move([-72, 0]).reg([-72, 0])
+				.fill('#fff').nostroke().move([-72, height]).reg([-72, 0])
 				.modify(function(t) {
-					this.angle += .01;
-					if (this.angle >= 1.75)
-						this.angle -= 1.93;
+					if (petalInit < 4 && t > 0) {
+						this.angle = angle-1.57;
+						petalInit++;
+					} else {
+						this.angle += 4*Math.pow(dot[0].data().r, 3)/3/allMass * .02;
+						if (this.angle >= .18)
+							this.angle -= 1.93;
+					}
+					this.alpha = 4*Math.pow(dot[0].data().r, 3)/3/allMass * .67;
 				});
 			}
 			
 			function clear() {
       			background.clear();
 				foreground.clear();
-				// TODO: clear UI layer
+				ui.clear();
 			}
 			
 			function set() {
@@ -375,6 +375,11 @@
 				
 				// add ring
 				foreground.add(ring());
+				
+				// add petals
+				petalInit = 0;
+				for (var i=0; i<4; i++)
+					background.add(petal(.4825*i));
 			}
 			
 			function setSeed(val) {
@@ -385,9 +390,6 @@
 			
             function start() {
 				scene1.add(main());
-				
-				// test
-				scene1.add(petal());
 				
 				set();
 						
@@ -427,7 +429,7 @@
 				createPlayer('canvas', {'mode': C.M_DYNAMIC}).load(scene1).play();
 				createPlayer('bCanvas', {'mode': C.M_DYNAMIC, 'cnvs': {'bgfill': 'rgba(255, 255, 255, 0)'}}).load(background).play();
 				createPlayer('fCanvas', {'mode': C.M_DYNAMIC, 'cnvs': {'bgfill': 'rgba(255, 255, 255, 0)'}}).load(foreground).play();
-    
+				createPlayer('uCanvas', {'mode': C.M_DYNAMIC, 'cnvs': {'bgfill': 'rgba(255, 255, 255, 0)'}}).load(ui).play(); 
             }
         </script>
       </head>
@@ -439,6 +441,7 @@
 		<canvas id="canvas" width="640" height="480"></canvas>
         <canvas id="bCanvas" width="640" height="480" style="display:none;"></canvas>
         <canvas id="fCanvas" width="640" height="480" style="display:none;"></canvas>
+        <canvas id="uCanvas" width="640" height="480" style="display:none;"></canvas>
         
         <form name="inputForm" action="JavaScript:setSeed(document.forms['inputForm']['seed'].value)" method="post">
 			Code: <input type="text" name="seed">
