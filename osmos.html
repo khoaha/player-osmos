@@ -9,6 +9,7 @@
 		<script src="../player/animatron_import.js" type="text/javascript"></script>
         
         <link href='http://fonts.googleapis.com/css?family=Quando' rel='stylesheet' type='text/css'>
+        <link href='http://fonts.googleapis.com/css?family=Lemon' rel='stylesheet' type='text/css'>
 
 		<script type="text/javascript">
 			var b = Builder._$, B = Builder, C = anm.C;
@@ -20,6 +21,8 @@
 			var background = b();
             var foreground = b();
 			var ui = b();
+			
+			var winCond = .67;
 			
 			var startTime;
 			var time = 0;
@@ -109,23 +112,17 @@
 					if (dot[i].data().r > 0)
 						num++;
 				}
-				if (4*Math.pow(dot[0].data().r, 3)/3/allMass < 1/num) {
-					ui.add(b().paint(function(ctx) {
-      					ctx.font = '12pt Quando';
-						ctx.fillStyle = '#ffffff';
-      					ctx.fillText("It doesn't look so good...", 420, 472);
-    				}).alpha([time, time+3], [0, 1]));
-					warn = true;
-				}
+				return (4*Math.pow(dot[0].data().r, 3)/3/allMass < 1/num);
 			}
 			
 			var mainModifier = function(t) {
 				time = t - startTime;
 				
+				var p = 4*Math.pow(dot[0].data().r, 3)/3/allMass;
+				
 				// check for win condition
-				var winCond = .67;
 				if (!over && allMass > 0)
-					if (4*Math.pow(dot[0].data().r, 3)/3/allMass >= winCond) {
+					if (p >= winCond) {
 						ui.add(b().paint(function(ctx) {
 							ctx.font = '30pt Quando';
 							ctx.fillStyle = '#ffffff';
@@ -133,11 +130,19 @@
 						}).trans([t, t+3], [[0, 32], [0, 0]], C.E_COUT)
 						.alpha([t, t+3], [0, 1]));
 						over = true;
-					} else if (!warn)
-						dangerCheck();
+					} else if (!warn) {
+						if (dangerCheck()) {
+							ui.add(b().paint(function(ctx) {
+								ctx.font = '12pt Quando';
+								ctx.fillStyle = '#ffffff';
+								ctx.fillText("It doesn't look so good...", 420, 472);
+							}).alpha([time, time+3], [0, 1]));
+							warn = true;
+						}
+					}
 				
 				// add bubbles
-				if (Math.random() < .15)
+				if (Math.random() < .1 + p*.1)
 					background.add(bubble());
 			}
 			
@@ -333,15 +338,16 @@
 				b().path('M32 0 C64 16 128 16 160 0 C128 -16 64 -16 32 0 Z').move([128, 0]).fill('#fff').nostroke())
 				.fill('#fff').nostroke().move([-72, height]).reg([-72, 0])
 				.modify(function(t) {
+					var p = Math.min(4*Math.pow(dot[0].data().r, 3)/3/allMass, 1);
 					if (petalInit < 4 && t > 0) {
 						this.angle = angle-1.57;
 						petalInit++;
 					} else {
-						this.angle += 4*Math.pow(dot[0].data().r, 3)/3/allMass * .02;
+						this.angle += p * .02;
 						if (this.angle >= .18)
 							this.angle -= 1.93;
 					}
-					this.alpha = 4*Math.pow(dot[0].data().r, 3)/3/allMass * .67;
+					this.alpha = p * .67;
 				});
 			}
 			
@@ -380,6 +386,14 @@
 				petalInit = 0;
 				for (var i=0; i<4; i++)
 					background.add(petal(.4825*i));
+					
+				// add score
+				ui.add(b().paint(function(ctx) {
+					ctx.font = '22pt Lemon';
+					ctx.fillStyle = '#ffffff';
+					ctx.textAlign = 'right';
+					ctx.fillText(Math.floor(100*(4*Math.pow(dot[0].data().r, 3)/3/allMass/winCond))+'%', 624, 40);
+				}));
 			}
 			
 			function setSeed(val) {
