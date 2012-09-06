@@ -27,6 +27,7 @@
 			var startTime;
 			var time = 0;
 			var over;
+			var win;
 			var warn;
 			
 			var dot;
@@ -130,6 +131,7 @@
 						}).trans([t, t+3], [[0, 32], [0, 0]], C.E_COUT)
 						.alpha([t, t+3], [0, 1]));
 						over = true;
+						win = true;
 					} else if (!warn) {
 						if (dangerCheck()) {
 							ui.add(b().paint(function(ctx) {
@@ -203,8 +205,7 @@
 								if (this.sx >= o.r) {
 									this.sx = Math.pow(3*(4*r1*r1*r1/3 + v)/4, 1/3);
 									var m2 = Math.pow(3*(4*r2*r2*r2/3 - v)/4, 1/3);
-									if (m2 > 0)
-										dot[j].data({'r': m2, 'x':o.x, 'y':o.y, 'vx': o.vx, 'vy': o.vy});
+									dot[j].data({'r': m2, 'x':o.x, 'y':o.y, 'vx': o.vx, 'vy': o.vy});
 								} else {
 									if (4*r2*r2*r2/3 <= v) {
 										this.sx = 0;
@@ -361,6 +362,7 @@
 				// set state vars
 				startTime = time;
 				over = false;
+				win = false;
 				warn = false;
 				
 				// set seed
@@ -389,10 +391,11 @@
 					
 				// add score
 				ui.add(b().paint(function(ctx) {
+					var p = 4*Math.pow(dot[0].data().r, 3)/3/allMass;
 					ctx.font = '22pt Lemon';
-					ctx.fillStyle = '#ffffff';
+					ctx.fillStyle = win ? '#ffaa00' : '#ffffff';
 					ctx.textAlign = 'right';
-					ctx.fillText(Math.floor(100*(4*Math.pow(dot[0].data().r, 3)/3/allMass/winCond))+'%', 624, 40);
+					ctx.fillText((p>.01 ? Math.floor(100*p) : Math.ceil(100*p))+'%', 624, 40);
 				}));
 			}
 			
