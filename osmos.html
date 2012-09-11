@@ -84,6 +84,17 @@
 				}
 			}
 			
+			function randomString() {
+				var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
+				var string_length = 8;
+				var randomstring = '';
+				for (var i=0; i<string_length; i++) {
+					var rnum = Math.floor(Math.random() * chars.length);
+					randomstring += chars.substring(rnum,rnum+1);
+				}
+				return randomstring;
+			}
+			
 			function toHex(n) {
 				return ((n < 16) ? '0' : '') + n.toString(16);
 			}
@@ -120,6 +131,16 @@
 			
 			var mainModifier = function(t) {
 				time = t - startTime;
+				
+				// re-calc allMass
+				allMass = 0;
+				for (var i=0; i<dot.length; i++) {
+					if (dot[i] != null && dot[i].data() != null) {
+						var r = dot[i].data().r;
+						if (r && !isNaN(r))
+							allMass += 4*r*r*r/3;
+					}
+				}
 				
 				var p = 4*Math.pow(dot[0].data().r, 3)/3/allMass;
 				
@@ -355,7 +376,12 @@
 			
 			function speedMarker() {
 				var tri = b().path([ [0, 0], [6, 8], [0, 16], [12, 8], [0, 0] ]).fill('#fff').nostroke();
-				return tri.add(b(tri).move([12, 0]));
+				return tri.add(b(tri).move([12, 0])).modify(function(t) {
+					if (timeMult > 1)
+						this.alpha = 1;
+					else
+						this.alpha = .3;
+				});
 			}
 			
 			function clear() {
@@ -479,7 +505,7 @@
         </script>
       </head>
 
-	<body onload="start();">
+	<body onload="seed = document.forms['inputForm']['seed'].value = randomString(); start();">
 		<h1>Osmos - Animatron HTML5 Player Demo</h1>
 
 		<!-- canvases -->
