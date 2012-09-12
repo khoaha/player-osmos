@@ -151,6 +151,8 @@
 							ctx.font = '30pt Quando';
 							ctx.fillStyle = '#ffffff';
 							ctx.fillText('Stage Clear', 196, 240);
+							ctx.font = '10pt Quando';
+							ctx.fillText("Press 'Enter' to continue", 228, 264);
 						}).trans([t, t+3], [[0, 32], [0, 0]], C.E_COUT)
 						.alpha([t, t+3], [0, 1]));
 						over = true;
@@ -236,6 +238,9 @@
 													ctx.font = '30pt Quando';
 													ctx.fillStyle = '#ffffff';
 													ctx.fillText('Game Over', 196, 240);
+													ctx.font = '10pt Quando';
+													ctx.fillStyle = '#ffffff';
+													ctx.fillText("Press 'Enter' to retry", 240, 264);
 												}).alpha([t, t+3], [0, 1]));
 												over = true;
 											}
@@ -401,17 +406,19 @@
 				rand = new Rc4Random(seed);
 				
 				// create level
-				var n = Math.floor(rand.getRandomNumber()*35+25);
-				dot = new Array(n);
-				allMass = 0;
-				for (var i=0; i<n; i++) {
-					var r = (i==0 ? Math.pow(rand.getRandomNumber(), 1/3) : rand.getRandomNumber())*8+4;
-					var v = (i==0) ? 0 : Math.pow(rand.getRandomNumber(), 3)*.67;
-					var a = rand.getRandomNumber()*2*Math.PI;
-					dot[i] = make(i).data({'r': r, 'x':rand.getRandomNumber()*(width-2*r)+r, 'y':rand.getRandomNumber()*(height-2*r)+r, 'vx': v*Math.cos(a), 'vy': v*Math.sin(a)});
-					foreground.add(dot[i]);
-					allMass += 4*r*r*r/3;
-				}
+				do {
+					var n = Math.floor(rand.getRandomNumber()*35+25);
+					dot = new Array(n);
+					allMass = 0;
+					for (var i=0; i<n; i++) {
+						var r = (i==0 ? Math.pow(rand.getRandomNumber(), 1/3) : rand.getRandomNumber())*8+4;
+						var v = (i==0) ? 0 : Math.pow(rand.getRandomNumber(), 3)*.67;
+						var a = rand.getRandomNumber()*2*Math.PI;
+						dot[i] = make(i).data({'r': r, 'x':rand.getRandomNumber()*(width-2*r)+r, 'y':rand.getRandomNumber()*(height-2*r)+r, 'vx': v*Math.cos(a), 'vy': v*Math.sin(a)});
+						foreground.add(dot[i]);
+						allMass += 4*r*r*r/3;
+					}
+				} while (dangerCheck());
 				
 				// add ring
 				foreground.add(ring());
@@ -485,6 +492,11 @@
 					foreground.add(dot[l]);
 					
 				}).on(C.X_KPRESS, function(evt) {
+					if (over && evt.key == 13) { //enter
+						if (win)
+							seed = document.forms['inputForm']['seed'].value = randomString();
+						setSeed(document.forms['inputForm']['seed'].value);
+					}
 					if (evt.key == 32) //space
 						timeMult = 4;
 				}).on(C.X_KUP, function(evt) {
