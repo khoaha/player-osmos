@@ -31,6 +31,8 @@
 			var win;
 			var warn;
 			
+			var frameCheck;
+			
 			var dot;
 			var allMass;
 			
@@ -121,15 +123,32 @@
 			}
 			
 			function dangerCheck() {
-				var num = 0;
+				var arr = new Array();
 				for (var i=0; i<dot.length; i++) {
-					if (dot[i].data().r > 0)
-						num++;
+					var r = dot[i].data().r;
+					if (r > 0)
+						arr.push(r);
 				}
-				return (4*Math.pow(dot[0].data().r, 3)/3/allMass < 1/num);
+				arr.sort();
+				var n = arr.indexOf(dot[0].data().r);
+				if (n == arr.length-1)
+					return false;
+				var s = 0;
+				for (var i=0; i<=n; i++)
+					s += 4*Math.pow(arr[i], 3)/3;
+				return (s < 4*Math.pow(arr[n+1], 3)/3);
 			}
 			
 			var mainModifier = function(t) {
+				// check initial condition
+				if (!frameCheck && time != startTime) {
+					frameCheck = true;
+					if (dangerCheck()) {
+						setSeed(seed+Math.round(rand.getRandomNumber()));
+						return;
+					}
+				}
+				
 				time = t - startTime;
 				
 				// re-calc allMass
@@ -151,10 +170,13 @@
 							ctx.font = '30pt Quando';
 							ctx.fillStyle = '#ffffff';
 							ctx.fillText('Stage Clear', 196, 240);
-							ctx.font = '10pt Quando';
-							ctx.fillText("Press 'Enter' to continue", 228, 264);
 						}).trans([t, t+3], [[0, 32], [0, 0]], C.E_COUT)
 						.alpha([t, t+3], [0, 1]));
+						ui.add(b().paint(function(ctx) {
+							ctx.font = '10pt Quando';
+							ctx.fillStyle = '#ffffff';
+							ctx.fillText("Press 'Enter' to continue", 228, 264);
+						}).alpha([t+3, t+5], [0, 1]));
 						over = true;
 						win = true;
 					} else if (!warn) {
@@ -238,10 +260,12 @@
 													ctx.font = '30pt Quando';
 													ctx.fillStyle = '#ffffff';
 													ctx.fillText('Game Over', 196, 240);
+												}).alpha([t, t+3], [0, 1]));
+												ui.add(b().paint(function(ctx) {
 													ctx.font = '10pt Quando';
 													ctx.fillStyle = '#ffffff';
 													ctx.fillText("Press 'Enter' to retry", 240, 264);
-												}).alpha([t, t+3], [0, 1]));
+												}).alpha([t+3, t+5], [0, 1]));
 												over = true;
 											}
 											break;
@@ -324,13 +348,15 @@
 					// draw background
 					ctx.drawImage(document.getElementById('bCanvas'), 0, 0);
 					
-					// draw foreground
-					ctx.globalAlpha = .83 + Math.cos(time)/6;
-					ctx.drawImage(document.getElementById('fCanvas'), 0, 0);
-					ctx.globalAlpha = 1;
-					
-					// draw ui
-					ctx.drawImage(document.getElementById('uCanvas'), 0, 0);
+					if (frameCheck) {
+						// draw foreground
+						ctx.globalAlpha = .83 + Math.cos(time)/6;
+						ctx.drawImage(document.getElementById('fCanvas'), 0, 0);
+						ctx.globalAlpha = 1;
+						
+						// draw ui
+						ctx.drawImage(document.getElementById('uCanvas'), 0, 0);
+					}
 				}).modify(mainModifier);
 			}
 			
@@ -406,19 +432,18 @@
 				rand = new Rc4Random(seed);
 				
 				// create level
-				do {
-					var n = Math.floor(rand.getRandomNumber()*35+25);
-					dot = new Array(n);
-					allMass = 0;
-					for (var i=0; i<n; i++) {
-						var r = (i==0 ? Math.pow(rand.getRandomNumber(), 1/3) : rand.getRandomNumber())*8+4;
-						var v = (i==0) ? 0 : Math.pow(rand.getRandomNumber(), 3)*.67;
-						var a = rand.getRandomNumber()*2*Math.PI;
-						dot[i] = make(i).data({'r': r, 'x':rand.getRandomNumber()*(width-2*r)+r, 'y':rand.getRandomNumber()*(height-2*r)+r, 'vx': v*Math.cos(a), 'vy': v*Math.sin(a)});
-						foreground.add(dot[i]);
-						allMass += 4*r*r*r/3;
-					}
-				} while (dangerCheck());
+				frameCheck = false;
+				var n = Math.floor(rand.getRandomNumber()*35+25);
+				dot = new Array(n);
+				allMass = 0;
+				for (var i=0; i<n; i++) {
+					var r = (i==0 ? Math.pow(rand.getRandomNumber(), 1/3) : rand.getRandomNumber())*8+4;
+					var v = (i==0) ? 0 : Math.pow(rand.getRandomNumber(), 3)*.67;
+					var a = rand.getRandomNumber()*2*Math.PI;
+					dot[i] = make(i).data({'r': r, 'x':rand.getRandomNumber()*(width-2*r)+r, 'y':rand.getRandomNumber()*(height-2*r)+r, 'vx': v*Math.cos(a), 'vy': v*Math.sin(a)});
+					foreground.add(dot[i]);
+					allMass += 4*r*r*r/3;
+				}
 				
 				// add ring
 				foreground.add(ring());
