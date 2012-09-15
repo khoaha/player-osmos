@@ -22,6 +22,10 @@
             var foreground = b();
 			var ui = b();
 			
+			var play = false;
+			var menuTime = 0;
+			var menu;
+			
 			var winCond = .67;
 			
 			var startTime;
@@ -129,70 +133,84 @@
 					if (r > 0)
 						arr.push(r);
 				}
-				arr.sort();
+				arr.sort(function(a,b) {return a - b});
 				var n = arr.indexOf(dot[0].data().r);
 				if (n == arr.length-1)
 					return false;
 				var s = 0;
 				for (var i=0; i<=n; i++)
 					s += 4*Math.pow(arr[i], 3)/3;
-				return (s < 4*Math.pow(arr[n+1], 3)/3);
+				for (var i=n+1; i<arr.length; i++) {
+					if (s < 4*Math.pow(arr[i], 3)/3)
+						break;
+					s += 4*Math.pow(arr[i], 3)/3;
+				}
+				return (s/allMass < winCond);
 			}
 			
 			var mainModifier = function(t) {
-				// check initial condition
-				if (!frameCheck && time != startTime) {
-					frameCheck = true;
-					if (dangerCheck()) {
-						setSeed(seed+Math.round(rand.getRandomNumber()));
-						return;
-					}
-				}
-				
-				time = t - startTime;
-				
-				// re-calc allMass
-				allMass = 0;
-				for (var i=0; i<dot.length; i++) {
-					if (dot[i] != null && dot[i].data() != null) {
-						var r = dot[i].data().r;
-						if (r && !isNaN(r))
-							allMass += 4*r*r*r/3;
-					}
-				}
-				
-				var p = 4*Math.pow(dot[0].data().r, 3)/3/allMass;
-				
-				// check for win condition
-				if (!over && allMass > 0)
-					if (p >= winCond) {
-						ui.add(b().paint(function(ctx) {
-							ctx.font = '30pt Quando';
-							ctx.fillStyle = '#ffffff';
-							ctx.fillText('Stage Clear', 196, 240);
-						}).trans([t, t+3], [[0, 32], [0, 0]], C.E_COUT)
-						.alpha([t, t+3], [0, 1]));
-						ui.add(b().paint(function(ctx) {
-							ctx.font = '10pt Quando';
-							ctx.fillStyle = '#ffffff';
-							ctx.fillText("Press 'Enter' to continue", 228, 264);
-						}).alpha([t+3, t+5], [0, 1]));
-						over = true;
-						win = true;
-					} else if (!warn) {
+				if (play) {
+					// check initial condition
+					if (!frameCheck && time != startTime) {
+						frameCheck = true;
 						if (dangerCheck()) {
-							ui.add(b().paint(function(ctx) {
-								ctx.font = '12pt Quando';
-								ctx.fillStyle = '#ffffff';
-								ctx.fillText("It doesn't look so good...", 420, 472);
-							}).alpha([time, time+3], [0, 1]));
-							warn = true;
+							setSeed(seed+Math.round(rand.getRandomNumber()));
+							return;
 						}
 					}
+					
+					time = t - startTime;
+					
+					// re-calc allMass
+					allMass = 0;
+					for (var i=0; i<dot.length; i++) {
+						if (dot[i] != null && dot[i].data() != null) {
+							var r = dot[i].data().r;
+							if (r && !isNaN(r))
+								allMass += 4*r*r*r/3;
+						}
+					}
+					
+					var p = 4*Math.pow(dot[0].data().r, 3)/3/allMass;
+					
+					// check for win condition
+					if (!over && allMass > 0)
+						if (p >= winCond) {
+							ui.add(b().paint(function(ctx) {
+								ctx.font = '30pt Quando';
+								ctx.fillStyle = '#ffffff';
+								ctx.fillText('Stage Clear', 196, 240);
+							}).trans([t, t+3], [[0, 32], [0, 0]], C.E_COUT)
+							.alpha([t, t+3], [0, 1]));
+							ui.add(b().paint(function(ctx) {
+								ctx.font = '10pt Quando';
+								ctx.fillStyle = '#ffffff';
+								ctx.fillText("Press 'Enter' to continue", 228, 264);
+							}).alpha([0, t+3], [0, 0]).alpha([t+3, t+4], [0, 1]));
+							over = true;
+							win = true;
+						} else if (!warn) {
+							if (dangerCheck()) {
+								ui.add(b().paint(function(ctx) {
+									ctx.font = '12pt Quando';
+									ctx.fillStyle = '#ffffff';
+									ctx.fillText("It doesn't look so good...", 420, 472);
+								}).alpha([time, time+3], [0, 1]));
+								warn = true;
+							}
+						}
+						
+					// add bubbles
+					if (Math.random() < .1 + p*.1)
+						background.add(bubble());
 				
-				// add bubbles
-				if (Math.random() < .1 + p*.1)
-					background.add(bubble());
+				} else {
+					menuTime = t;
+					
+					// add bubbles anyways
+					if (Math.random() < .3)
+						background.add(bubble());
+				}
 			}
 			
 			var dotModifier = function(t, i) {
@@ -265,7 +283,7 @@
 													ctx.font = '10pt Quando';
 													ctx.fillStyle = '#ffffff';
 													ctx.fillText("Press 'Enter' to retry", 240, 264);
-												}).alpha([t+3, t+5], [0, 1]));
+												}).alpha([0, t+3], [0, 0]).alpha([t+3, t+4], [0, 1]));
 												over = true;
 											}
 											break;
@@ -332,7 +350,9 @@
 			function main() {
 				return b().paint(function(ctx) {
 					var h;
-					if (dot[0])
+					if (!play)
+						h = 1;
+					else if (dot[0])
 						h = Math.min(4*Math.pow(dot[0].data().r, 3)/3/allMass, 1);
 					else
 						h = 0;
@@ -348,7 +368,7 @@
 					// draw background
 					ctx.drawImage(document.getElementById('bCanvas'), 0, 0);
 					
-					if (frameCheck) {
+					if (!play || frameCheck) {
 						// draw foreground
 						ctx.globalAlpha = .83 + Math.cos(time)/6;
 						ctx.drawImage(document.getElementById('fCanvas'), 0, 0);
@@ -477,14 +497,44 @@
 				seed = val;
 				clear();
 				set();
+				play = true;
 			}
 			
             function start() {
 				scene1.add(main());
 				
-				set();
+				// add menu
+				menu = b().add(b().paint(function(ctx) {
+					ctx.fillStyle = hsvToHex(.157, Math.min(menuTime, 2)/2, 1);
+					ctx.font = '54pt Lemon';
+					ctx.fillText('F', 224, 140);
+					ctx.font = '42pt Lemon';
+					ctx.fillText('u', 254, 146);
+					ctx.fillText('s', 290, 136);
+					ctx.fillText('i', 318, 142);
+					ctx.fillText('o', 334, 138);
+					ctx.fillText('n', 366, 144);
+				}).trans([0, 2], [[0, 16], [0, -16]], C.E_COUT)
+				.alpha([0, 2], [0, 1]))
+				.add(b().paint(function(ctx) {
+					ctx.fillStyle = '#ffffff';
+					ctx.font = '12pt Quando';
+					ctx.textAlign = "center";
+					ctx.fillText('Absorb everything else and become the biggest!', 320, 200);
+					ctx.fillText('Click to maneuver / Space to speed up, arrow keys to adjust', 320, 240);
+					ctx.fillText("Select levels by entering a code and clicking 'Set'", 320, 280);
+					ctx.font = '14pt Quando';
+					ctx.fillStyle = 'rgba(255, 255, 255, '+(2/3-Math.sin(menuTime*3)/3)+')';
+					ctx.fillText("Click to start", 320, 380);
+				}).alpha([0, 2], [0, 0]).alpha([2, 3], [0, 1]));
+				ui.add(menu);
 						
 				scene1.on(C.X_MCLICK, function(evt) {
+					if (!play) {
+						setSeed(document.forms['inputForm']['seed'].value);
+						return;
+					}
+					
 					// find masses
 					var e = .1;
 					var m = 4*Math.pow(dot[0].data().r, 3)/3;
@@ -517,6 +567,9 @@
 					foreground.add(dot[l]);
 					
 				}).on(C.X_KPRESS, function(evt) {
+					if (!play)
+						return;
+					
 					if (over && evt.key == 13) { //enter
 						if (win)
 							seed = document.forms['inputForm']['seed'].value = randomString();
